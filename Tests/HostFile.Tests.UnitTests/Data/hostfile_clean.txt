@@ -1,0 +1,9 @@
+﻿# Test dummy data of host file
+#
+#
+
+1.1.1.1		hostname1
+2.2.2.2		hostname2
+3.3.3.3		hostname3
+4.4.4.4		hostname4
+5.5.5.5		hostname5
