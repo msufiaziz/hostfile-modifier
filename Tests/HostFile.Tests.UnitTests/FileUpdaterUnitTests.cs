@@ -14,7 +14,7 @@ namespace HostFile.Tests.UnitTests
     [TestClass]
     public class FileUpdaterUnitTests
     {
-        const string EnvironmentName = "SIT-G4";
+        const string EnvironmentName = "data.txt";
         const string AppSettingPath = "appSettings.json";
         const string CleanHostFilePath = @"Data\hostfile_clean.txt";
         const string DirtyHostFilePath = @"Data\hostfile_dirty.txt";
@@ -68,7 +68,7 @@ namespace HostFile.Tests.UnitTests
         {
             string testFile = CleanHostFilePath + ".test";
             string backupTestFile = testFile + ".bak";
-            File.Copy(CleanHostFilePath, testFile);
+            File.Copy(CleanHostFilePath, testFile, true);
 
             _fileUpdater.UpdateTargetFile(EnvironmentName, testFile);
 

@@ -8,6 +8,6 @@
 4.4.4.4		hostname4
 5.5.5.5		hostname5
 
-# Start Environment SIT-G4
+# Start Environment data.txt
 10.10.10.10		hostname6
 # End Environment
