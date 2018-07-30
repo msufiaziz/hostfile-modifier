@@ -40,15 +40,18 @@ namespace HostFile.UI.Updater.Handlers
                 
                 try
                 {
-                    // Update data.
-                    var updatedList = (await GetUpdatedListAsync(sourceData, contents)).OrderBy(item => item.HostName)
-                                                                                       .Select(item => $"{item.IPAddress}\t\t{item.HostName}");
+                    await Task.Run(() =>
+                    {
+                        // Update data.
+                        var updatedList = GetUpdatedList(sourceData, contents).OrderBy(item => item.HostName)
+                                                                              .Select(item => $"{item.IPAddress}\t\t{item.HostName}");
 
-                    // Rewrite the source file.
-                    File.WriteAllLines(filePath, updatedList);
+                        // Rewrite the source file.
+                        File.WriteAllLines(filePath, updatedList);
 
-                    // Set to 'True'.
-                    isSuccess = true;
+                        // Set to 'True'.
+                        isSuccess = true;
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -72,11 +75,10 @@ namespace HostFile.UI.Updater.Handlers
             return isSuccess;
         }
 
-        private async Task<IEnumerable<HostItem>> GetUpdatedListAsync(Source sourceData, IEnumerable<string> contents)
+        private IEnumerable<HostItem> GetUpdatedList(Source sourceData, IEnumerable<string> contents)
         {
             IDnsClient dnsClient = new Libs.Updater.Dns.DnsClient(_logger, IPAddress.Parse(sourceData.FirstDNS), IPAddress.Parse(sourceData.SecondDNS));
             var concurrentBag = new ConcurrentBag<HostItem>();
-            var tasks = new ConcurrentBag<Task>();
 
             var details = contents.Select(line =>
             {
@@ -88,41 +90,36 @@ namespace HostFile.UI.Updater.Handlers
             // Update the IP address for each hostnames. If failed, its default value will be used as output.
             Parallel.ForEach(details, item =>
             {
-                tasks.Add(Task.Run(async () =>
+                // Initialize with default values.
+                var newItem = new HostItem { HostName = item.HostName, IPAddress = item.IPAddress };
+
+                IPAddress ipAddress = null;
+                try
                 {
-                    // Initialize with default values.
-                    var newItem = new HostItem { HostName = item.HostName, IPAddress = item.IPAddress };
+                    ipAddress = dnsClient.ResolveHostName(item.HostName);
+                    if (ipAddress != null)
+                    {
+                        // Value not same, so update it.
+                        if (!ipAddress.Equals(item.IPAddress))
+                        {
+                            newItem.IPAddress = ipAddress;
+                            newItem.Status = "updated";
+                        }
+                    }
+                    else
+                    {
+                        // Failed to resolve, so use its default IP address.
+                        newItem.Status = "not found";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogException(ex);
+                    newItem.Status = ex.Message;
+                }
 
-                    IPAddress ipAddress = null;
-                    try
-                    {
-                        ipAddress = await dnsClient.ResolveHostNameAsync(item.HostName);
-                        if (ipAddress != null)
-                        {
-                            // Value not same, so update it.
-                            if (!ipAddress.Equals(item.IPAddress))
-                            {
-                                newItem.IPAddress = ipAddress;
-                                newItem.Status = "updated";
-                            }
-                        }
-                        else
-                        {
-                            // Failed to resolve, so use its default IP address.
-                            newItem.Status = "not found";
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogException(ex);
-                        newItem.Status = ex.Message;
-                    }
-                    
-                    concurrentBag.Add(newItem);
-                }));
+                concurrentBag.Add(newItem);
             });
-
-            await Task.WhenAll(tasks);
 
             return concurrentBag;
         }
