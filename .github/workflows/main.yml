@@ -39,4 +39,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: hostfile_modifier
-        path: ${{ github.workspace }}/bin/Release
+        path: ${{ github.workspace }}\UI\HostFile.UI.Updater\bin\Release
